@@ -178,8 +178,24 @@ async function startMining() {
 
 async function claimMining() {
   const r = await api('/mining/claim', { method: 'POST', body: {} });
-  console.log(`claim ✓ · balance ${nf(r?.balance)} EPS`);
+  console.log(`claim ✓ · +${nf(r?.rewardEps ?? r?.reward)} EPS · balance ${nf(r?.balance)} EPS`);
   return r;
+}
+
+async function claimWait() {
+  const poll = Math.max(15, Number(ENV.POLL_SECONDS || 60));
+  for (;;) {
+    const m = await api('/mining');
+    if (m.status === 'READY') return claimMining();
+    if (m.status === 'IDLE') {
+      console.log('belum ada sesi mining · memulai');
+      await startMining();
+    } else {
+      const left = (m.readyAt || 0) - Date.now();
+      console.log(`${new Date().toLocaleTimeString('id-ID')} · mining · sisa ${fmtLeft(left)}`);
+    }
+    await sleep(Math.round(poll * 1000 * rnd(0.85, 1.2)));
+  }
 }
 
 async function tasks(auto = false) {
@@ -187,19 +203,35 @@ async function tasks(auto = false) {
   const list = d?.tasks || [];
   if (!list.length) return console.log('tidak ada task');
   table(
-    ['ID', 'JUDUL', 'TIPE', 'REWARD', 'STATUS'],
-    list.map((t) => [String(t.id).slice(0, 10), (t.title || '-').slice(0, 30), t.type || '-', t.reward != null ? `${t.reward} EPS` : '-', t.status || (t.completed ? 'COMPLETED' : '-')]),
+    ['ID', 'JUDUL', 'TIPE', 'VERIFY', 'REWARD', 'STATUS'],
+    list.map((t) => [
+      String(t.id).slice(0, 8),
+      (t.title || '-').slice(0, 28),
+      t.type || '-',
+      t.verifyMode || 'auto',
+      t.reward != null ? `${t.reward} EPS` : '-',
+      t.status || (t.completed ? 'COMPLETED' : '-'),
+    ]),
     [0, 0, 0, 'r', 0]
   );
   if (!auto) return;
 
+  const code = arg('--code', '');
   for (const t of list) {
-    if (t.completed || t.status === 'COMPLETED') continue;
-    if (t.type === 'VIDEO_WATCH' || t.requiresCode) { console.log(`lewati ${t.id} (butuh aksi manual)`); continue; }
+    if (t.completed || t.status === 'COMPLETED' || t.status === 'APPROVED') continue;
+
+    // task kode: butuh kode dari luar
+    if (t.verifyMode === 'code' && !code) {
+      console.log(`lewati ${t.id} · butuh kode (pakai --code XXXX)`);
+      continue;
+    }
     try {
-      const r = await api(`/tasks/${t.id}/complete`, { method: 'POST', body: {} });
-      console.log(`task ✓ ${t.title?.slice(0, 40) || t.id}${r?.reward ? ` · +${r.reward} EPS` : ''}`);
+      const body = t.verifyMode === 'code' ? { code } : {};
+      const r = await api(`/tasks/${t.id}/complete`, { method: 'POST', body });
+      if (r?.alreadyDone) console.log(`task ${t.id} · sudah pernah diklaim`);
+      else console.log(`task ✓ ${(t.title || t.id).slice(0, 40)} · +${nf(r?.reward ?? t.reward)} EPS · balance ${nf(r?.balance)}`);
     } catch (e) {
+      // task dengan bukti (submit) tidak bisa otomatis
       console.log(`task ✗ ${t.id}: ${e.message}`);
     }
   }
@@ -233,7 +265,7 @@ try {
   else if (cmd === 'me') { await ensureLogin(); await me(); }
   else if (cmd === 'mining') { await ensureLogin(); await mining(); }
   else if (cmd === 'start') { await ensureLogin(); await startMining(); }
-  else if (cmd === 'claim') { await ensureLogin(); await claimMining(); }
+  else if (cmd === 'claim') { await ensureLogin(); if (has('--wait')) await claimWait(); else await claimMining(); }
   else if (cmd === 'tasks') { await ensureLogin(); await tasks(has('--auto')); }
   else if (cmd === 'auto') { await ensureLogin(); await autoLoop(); }
   else if (cmd === 'referral') { await ensureLogin(); const r = await api('/referral'); console.log(JSON.stringify(r, null, 2)); }
@@ -247,9 +279,11 @@ try {
   node epsilon.js me                profil + balance
   node epsilon.js mining            status sesi mining
   node epsilon.js start             mulai mining
-  node epsilon.js claim             klaim reward
+  node epsilon.js claim             klaim reward (harus READY)
+  node epsilon.js claim --wait      tunggu sampai READY lalu klaim
   node epsilon.js tasks             daftar task
   node epsilon.js tasks --auto      selesaikan task otomatis
+  node epsilon.js tasks --auto --code ABCD   untuk task bertipe kode
   node epsilon.js auto              loop: start → wait → claim (+tasks)
   node epsilon.js referral          info referral
   node epsilon.js whoami            cek sesi tersimpan

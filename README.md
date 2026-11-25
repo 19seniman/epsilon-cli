@@ -40,9 +40,11 @@ node epsilon.js login           # tukar initData → JWT (disimpan .tokens.json)
 node epsilon.js me              # profil · balance · status mining
 node epsilon.js mining          # status sesi + sisa waktu
 node epsilon.js start           # mulai mining
-node epsilon.js claim           # klaim reward
+node epsilon.js claim           # klaim reward (harus READY)
+node epsilon.js claim --wait    # tunggu sampai READY, lalu klaim otomatis
 node epsilon.js tasks           # daftar task
 node epsilon.js tasks --auto    # selesaikan task otomatis
+node epsilon.js tasks --auto --code ABCD   # untuk task bertipe kode
 node epsilon.js auto            # loop: IDLE→start, READY→claim, +tasks
 node epsilon.js referral        # info referral
 ```
@@ -64,6 +66,24 @@ Base: `https://api.epsilons.io/api/v1` · auth `Authorization: Bearer <JWT>`
 | Klaim fiat (manual) | GET/POST | `/claims/current`, `/claims/open`, `/claims/pay` | — |
 
 Status mining: `IDLE` → `MINING` → `READY`. Reward per sesi `rewardEps` (default 0,2 EPS).
+
+## Claim & task otomatis
+
+**Claim mining** — `/mining` memberi status `IDLE` / `MINING` / `READY`:
+
+- `claim` langsung memanggil `/mining/claim`, hanya berhasil saat `READY`
+- `claim --wait` memantau sampai `READY` (kalau `IDLE`, dia memulai sesi dulu), lalu klaim — cocok ditinggal
+- loop `auto` melakukan hal yang sama tanpa henti
+
+**Auto task** — membaca `GET /tasks`, lalu `POST /tasks/{id}/complete`:
+
+| Kondisi task | Perilaku |
+|---|---|
+| Sudah `COMPLETED`/`APPROVED` | dilewati |
+| `verifyMode: "code"` | dilewati kecuali diberi `--code XXXX` |
+| Butuh bukti (`submit`) | dilewati, dicatat alasannya |
+| Reward berhasil | dicatat `+X EPS · balance Y` |
+| `alreadyDone` | dicatat, tidak dihitung dua kali |
 
 ## Catatan
 
