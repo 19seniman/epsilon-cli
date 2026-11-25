@@ -14,8 +14,8 @@ Login pakai **initData** Telegram (bukan bot token), ditukar jadi JWT. Setelah i
 ## Instalasi
 
 ```bash
-git clone 
-cd 
+git clone https://github.com/19seniman/epsilon-cli.git
+cd epsilon-cli
 npm install
 nano .env 
 ```
