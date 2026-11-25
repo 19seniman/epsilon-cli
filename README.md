@@ -1,6 +1,6 @@
 # epsilon.js — CLI Epsilon Miner (mining.epsilons.io)
 
-Login pakai **initData** Telegram (bukan bot token), ditukar jadi JWT. Setelah itu mining bisa dijalankan otomatis: start → tunggu → claim, sekaligus menyelesaikan task.
+# Register : https://t.me/Epsiloncrypto_bot/Epsilon?startapp=EPS-C9392EB9
 
 ```
 ┌──────────────────────────────────────────────┐
