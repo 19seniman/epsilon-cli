@@ -14,8 +14,10 @@ Login pakai **initData** Telegram (bukan bot token), ditukar jadi JWT. Setelah i
 ## Instalasi
 
 ```bash
-git clone <repo>  &&  cd epsilon
-cp .env.example .env
+git clone 
+cd 
+npm install
+nano .env 
 ```
 
 Tidak ada dependency — cukup Node 18+.
@@ -31,22 +33,6 @@ Tidak ada dependency — cukup Node 18+.
 
 ```ini
 INIT_DATA=query_id=AAF...&user=...&auth_date=...&hash=...
-```
-
-## Pakai
-
-```bash
-node epsilon.js login           # tukar initData → JWT (disimpan .tokens.json)
-node epsilon.js me              # profil · balance · status mining
-node epsilon.js mining          # status sesi + sisa waktu
-node epsilon.js start           # mulai mining
-node epsilon.js claim           # klaim reward (harus READY)
-node epsilon.js claim --wait    # tunggu sampai READY, lalu klaim otomatis
-node epsilon.js tasks           # daftar task
-node epsilon.js tasks --auto    # selesaikan task otomatis
-node epsilon.js tasks --auto --code ABCD   # untuk task bertipe kode
-node epsilon.js auto            # loop: IDLE→start, READY→claim, +tasks
-node epsilon.js referral        # info referral
 ```
 
 ## API yang dipakai
